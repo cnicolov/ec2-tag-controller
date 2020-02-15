@@ -26,20 +26,8 @@ type reconcileNode struct {
 	// client can be used to retrieve objects from the APIServer.
 	client    client.Client
 	log       logr.Logger
-	tm        []tagMapping
+	tm        []TagMapping
 	ec2client ec2iface.EC2API
-}
-
-type Tag struct {
-	Key   string
-	Value string
-}
-
-type tagMapping struct {
-	Key      string
-	Value    string
-	TagKey   string `json:"tag_key"`
-	TagValue string `json:"tag_value"`
 }
 
 // Implement reconcile.Reconciler so the controller can reconcile objects
@@ -81,7 +69,7 @@ func (r *reconcileNode) Reconcile(request reconcile.Request) (reconcile.Result, 
 			ec2Tags = append(ec2Tags, &ec2.Tag{Key: aws.String(t.Key), Value: aws.String(t.Value)})
 		}
 
-		instanceID := extractInstanceIDFromNode(node)
+		instanceID := ExtractInstanceIDFromNode(node)
 
 		cti := &ec2.CreateTagsInput{
 			Resources: []*string{aws.String(instanceID)},
@@ -104,7 +92,7 @@ func (r *reconcileNode) Reconcile(request reconcile.Request) (reconcile.Result, 
 	return reconcile.Result{}, nil
 }
 
-func materializeTagsForNodeFromMapping(n *corev1.Node, tm []tagMapping) []Tag {
+func materializeTagsForNodeFromMapping(n *corev1.Node, tm []TagMapping) []Tag {
 	var tl []Tag
 	for _, t := range tm {
 		if l, ok := n.Labels[t.Key]; ok {
@@ -116,7 +104,7 @@ func materializeTagsForNodeFromMapping(n *corev1.Node, tm []tagMapping) []Tag {
 	return tl
 }
 
-func extractInstanceIDFromNode(n *corev1.Node) string {
+func ExtractInstanceIDFromNode(n *corev1.Node) string {
 	parts := strings.Split(n.Spec.ProviderID, "/")
 	return parts[len(parts)-1]
 }
