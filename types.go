@@ -1,11 +1,6 @@
 package main
 
-type Tag struct {
-	Key   string
-	Value string
-}
-
-type TagMapping struct {
+type Mapping struct {
 	Key      string
 	Value    string
 	TagKey   string `mapstructure:"tag_key"`
@@ -13,5 +8,5 @@ type TagMapping struct {
 }
 
 type Config struct {
-	Mappings []TagMapping `mapstructure:"mapping"`
+	Mappings []Mapping `mapstructure:"mapping"`
 }

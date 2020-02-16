@@ -16,38 +16,17 @@ import (
 	controllers "sigs.k8s.io/controller-runtime"
 )
 
-// var tm []TagMapping = []TagMapping{
-// 	TagMapping{
-// 		Key: "nodeType", Value: "kinvey",
-// 		TagKey: "workload_type", TagValue: "trusted",
-// 	},
-// 	TagMapping{
-// 		Key: "nodeType", Value: "fsr",
-// 		TagKey: "workload_type", TagValue: "untrusted",
-// 	},
-// }
-
 var log = klogr.New().WithName("ec2-tag-controller")
 
 var cfg Config
 
 func main() {
-	klog.InitFlags(nil)
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
-
-	viper.BindPFlags(pflag.CommandLine)
-	pflag.Parse()
-
-	viper.AddConfigPath(".")
-	viper.SetConfigName("config")
-
-	viper.AddConfigPath(".")    // optionally look for config in the working directory
-	err := viper.ReadInConfig() // Find and read the config file
-	if err != nil {             // Handle errors reading the config file
+	setupConfigAndFlags()
+	err := viper.ReadInConfig()
+	viper.Unmarshal(&cfg)
+	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
-
-	viper.Unmarshal(&cfg)
 
 	manager, err := controllers.NewManager(controllers.GetConfigOrDie(), controllers.Options{})
 	if err != nil {
@@ -55,14 +34,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	viper.SetDefault("annotation_key", "kinvey.com/cloudTags")
+
 	sess := session.Must(session.NewSession())
 	ec2client := ec2.New(sess, &aws.Config{})
 
 	err = controllers.NewControllerManagedBy(manager).For(&corev1.Node{}).Complete(&reconcileNode{
-		client:    manager.GetClient(),
-		tm:        cfg.Mappings,
-		log:       log,
-		ec2client: ec2client,
+		client:                 manager.GetClient(),
+		tm:                     cfg.Mappings,
+		log:                    log,
+		ec2client:              ec2client,
+		cloudTagsAnnotationKey: viper.GetString("annotation_key"),
 	})
 
 	if err != nil {
@@ -75,4 +57,16 @@ func main() {
 		os.Exit(1)
 	}
 
+}
+
+func setupConfigAndFlags() {
+
+	klog.InitFlags(nil)
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+
+	viper.BindPFlags(pflag.CommandLine)
+	pflag.Parse()
+
+	viper.AddConfigPath(".")
+	viper.SetConfigName("config")
 }

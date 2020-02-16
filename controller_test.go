@@ -14,7 +14,7 @@ var _ = Describe("Controller", func() {
 			node = &corev1.Node{Spec: corev1.NodeSpec{ProviderID: "aws:///us-east-1a/i-053d6b928c4e33e44"}}
 		})
 		It("Should extract InstanceID from a Node", func() {
-			instanceID := ExtractInstanceIDFromNode(node)
+			instanceID := extractInstanceIDFromNode(node)
 			expected := "i-053d6b928c4e33e44"
 			Expect(instanceID).To(Equal(expected))
 		})
